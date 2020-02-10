@@ -13,6 +13,8 @@ logging.basicConfig(level=logging.DEBUG,
                     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
 logger = logging.getLogger(__name__)
+fh = logging.FileHandler('spam.log')
+fh.setLevel(logging.DEBUG)
 
 START, DATE_ANSWER, CC_ANSWER = range(3)
 
@@ -56,7 +58,7 @@ def date_answer(update, context):
         for timeslot in all_cc_availability[cc]:
             cc_str += f'{timeslot}\n'
         cc_str += '\n'
-    reply = '**CCs Available**:\n' + cc_str
+    reply = f'**CCs Available for {date}**:\n' + cc_str
     if len(reply) > telegram.constants.MAX_MESSAGE_LENGTH:
         split_reply = reply.split('\n')
         halfway_mark = len(split_reply)//2
@@ -80,12 +82,12 @@ def cc_question(update, context):
 def cc_answer(update, context):
     cc = update.message.text
     update.message.reply_markdown(
-        f'Please wait - Looking up all Dates for {cc}...'
+        f'Please wait - Looking up all dates for {cc}...'
     )
     all_date_availability = check_cc_availability(cc)
     date_str = ''
     for date in all_date_availability:
-        date_str += f'**{date}**:\n'
+        date_str += f'**{datetime.datetime.strptime(date, "%d/%m/%Y").strftime("%a, %-d %b")}**:\n'
         for timeslot in all_date_availability[date]:
             date_str += f'{timeslot}\n'
         date_str += '\n'

@@ -95,6 +95,19 @@ def get_cc_hash_mapping():
 
 CC_HASH_MAPPING = get_cc_hash_mapping()
 
+def _extract_availability(soup):
+    slot_status = soup.select('span[class^=slots]')
+    slot_status = [el['class'][1] for el in slot_status]
+    slot_names = [el.text for el in soup.select('div[class^=slots]') if 'AM' in el.text or 'PM' in el.text]
+    slot_status_dict = {}
+    multiplier = int(len(slot_status) / len(slot_names))
+    assert (len(slot_status) % len(slot_names)) % 1 == 0
+    for i in range(len(slot_names)):
+        for j in range(multiplier):
+            if slot_status[i + len(slot_names) * j] in ['normal', 'peak']:
+                slot_status_dict[slot_names[i].replace(' ','')] = slot_status[i*(j+1)]
+    return slot_status_dict
+
 def check_cc_for_day(cc, target_date):
     cc_hash = CC_HASH_MAPPING[cc]
     if not isinstance(target_date, str):
@@ -112,14 +125,8 @@ def check_cc_for_day(cc, target_date):
         data['content_0$ddlFacilityLocation'] = cc_hash
         #  New request, with specified cc and datetime
         r = s.post(url, data=data)
-        soup_new = BeautifulSoup(r.content, 'html.parser')
-        slot_status = soup_new.select('span[class^=slots]')
-        slot_status = [el['class'][1] for el in slot_status]
-        slot_names = [el.text for el in soup_new.select('div[class^=slots]') if 'AM' in el.text or 'PM' in el.text]
-        slot_status_dict = {}
-        for i in range(len(slot_names)):
-            if slot_status[i] in ['normal', 'peak']:
-                slot_status_dict[slot_names[i].replace(' ','')] = slot_status[i]
+        soup = BeautifulSoup(r.content, 'html.parser')
+        slot_status_dict = _extract_availability(soup)
         return slot_status_dict
 
 def check_date_availability(target_date):
@@ -131,30 +138,22 @@ def check_date_availability(target_date):
         r = s.get(url)
         s.headers['user-agent'] = 'Mozilla/5.0'
         data = {}
+        data['__EVENTTARGET'] = 'content_0$ddlFacilityLocation'
+        data['content_0$tbDatePicker'] = target_date
         soup = BeautifulSoup(r.content, 'html.parser')
         for i, cc in enumerate(cc_list):
-            print(f'{i/len(cc_list)*100:.1f}% done...')
+            # print(f'{i/len(cc_list)*100:.1f}% done...')
             cc_hash = CC_HASH_MAPPING[cc]
             state = { tag['name']: tag['value'] for tag in soup.select('input[name^=__]')}
             data.update(state)
-            data['__EVENTTARGET'] = 'content_0$ddlFacilityLocation'
-            data['content_0$tbDatePicker'] = target_date
             data['content_0$ddlFacilityLocation'] = cc_hash
             #  New request, with specified cc and datetime
             r = s.post(url, data=data)
             soup = BeautifulSoup(r.content, 'html.parser')
-            slot_status = soup.select('span[class^=slots]')
-            slot_status = [el['class'][1] for el in slot_status]
-            slot_names = [el.text for el in soup.select('div[class^=slots]') if 'AM' in el.text or 'PM' in el.text]
-            slot_status_dict = {}
-            for i in range(len(slot_names)):
-                if slot_status[i] in ['normal', 'peak']:
-                    slot_status_dict[slot_names[i].replace(' ','')] = slot_status[i]
-            time.sleep(random.random()/10)
+            slot_status_dict = _extract_availability(soup)
             if len(list(slot_status_dict.keys())) != 0:
                 cc_availability[cc] = slot_status_dict
-            # if cc == 'Ayer Rajah CC':
-            #     break
+            time.sleep(random.random()/10)
     return cc_availability
 
 def check_cc_availability(cc):
@@ -165,25 +164,19 @@ def check_cc_availability(cc):
         r = s.get(url)
         s.headers['user-agent'] = 'Mozilla/5.0'
         data = {}
+        data['content_0$ddlFacilityLocation'] = cc_hash
         soup = BeautifulSoup(r.content, 'html.parser')
         for i in range(14):
-            print(f'{i/14*100:.1f}% done...')
+            # print(f'{i/14*100:.1f}% done...')
             target_date = (datetime.datetime.now()+datetime.timedelta(days=i)).strftime('%d/%m/%Y')
             state = { tag['name']: tag['value'] for tag in soup.select('input[name^=__]')}
             data.update(state)
             data['__EVENTTARGET'] = 'content_0$ddlFacilityLocation'
             data['content_0$tbDatePicker'] = target_date
-            data['content_0$ddlFacilityLocation'] = cc_hash
             #  New request, with specified cc and datetime
             r = s.post(url, data=data)
             soup = BeautifulSoup(r.content, 'html.parser')
-            slot_status = soup.select('span[class^=slots]')
-            slot_status = [el['class'][1] for el in slot_status]
-            slot_names = [el.text for el in soup.select('div[class^=slots]') if 'AM' in el.text or 'PM' in el.text]
-            slot_status_dict = {}
-            for i in range(len(slot_names)):
-                if slot_status[i] in ['normal', 'peak']:
-                    slot_status_dict[slot_names[i].replace(' ','')] = slot_status[i]
+            slot_status_dict = _extract_availability(soup)
             time.sleep(random.random()/10)
             if len(list(slot_status_dict.keys())) != 0:
                 date_availability[target_date] = slot_status_dict
