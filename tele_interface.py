@@ -68,7 +68,8 @@ def date_answer(update, context):
             rep,
             reply_markup=ReplyKeyboardRemove()
         )
-    return START
+    return ConversationHandler.END
+
 
 def cc_question(update, context):
     update.message.reply_markdown(
@@ -100,7 +101,8 @@ def cc_answer(update, context):
             rep,
             reply_markup=ReplyKeyboardRemove()
         )
-    return START
+    return ConversationHandler.END
+
 
 def echo(update, context):
     """Echo the user message."""
