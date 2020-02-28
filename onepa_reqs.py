@@ -5,7 +5,8 @@ import random
 
 from   bs4 import BeautifulSoup
 
-cc_list = ['ACE The Place CC',
+CC_LIST = [
+    'ACE The Place CC',
     'Anchorvale CC',
     'Ayer Rajah CC',
     'Bedok CC',
@@ -84,6 +85,12 @@ cc_list = ['ACE The Place CC',
 ]
 
 def get_cc_hash_mapping():
+    """CCs are denoted as a hash within the OnePA site's div ids
+    This function returns a dictionary of CC:hash, for easy BeautifulSoup access later
+    
+    Returns:
+        dict -- CC Hash mapping
+    """    
     url = 'https://www.onepa.sg/facilities/4490ccmcpa-bm'
     with requests.session() as s:
         s.headers['user-agent'] = 'Mozilla/5.0'
@@ -96,6 +103,14 @@ def get_cc_hash_mapping():
 CC_HASH_MAPPING = get_cc_hash_mapping()
 
 def _extract_availability(soup):
+    """Gets availability of slots from the OnePA website
+    
+    Arguments:
+        soup {bs4 Soup} -- Soup object containing CC's availability details for a specific day and specific CC
+    
+    Returns:
+        dict -- Slots and and their statuses
+    """    
     slot_status = soup.select('span[class^=slots]')
     slot_status = [el['class'][1] for el in slot_status]
     slot_names = [el.text for el in soup.select('div[class^=slots]') if 'AM' in el.text or 'PM' in el.text]
@@ -109,6 +124,15 @@ def _extract_availability(soup):
     return slot_status_dict
 
 def check_cc_for_day(cc, target_date):
+    """Checks CC for availability on target day
+    
+    Arguments:
+        cc {str} -- CC for which to check
+        target_date {datetime} -- day on which to check for timeslots
+    
+    Returns:
+        dict -- Slot status dictionary
+    """    
     cc_hash = CC_HASH_MAPPING[cc]
     if not isinstance(target_date, str):
         target_date = target_date.strftime('%d/%m/%Y')
@@ -130,6 +154,14 @@ def check_cc_for_day(cc, target_date):
         return slot_status_dict
 
 def check_date_availability(target_date):
+    """Checks all CCs for whether courts are available on specific day
+    
+    Arguments:
+        target_date {datetime.datetime} -- Target date for which to check all CCs' courts
+    
+    Returns:
+        dict -- {CC:{slot:availability}} dictionary for given date
+    """    
     if not isinstance(target_date, str):
         target_date = target_date.strftime('%d/%m/%Y')
     cc_availability = {}
@@ -141,8 +173,8 @@ def check_date_availability(target_date):
         data['__EVENTTARGET'] = 'content_0$ddlFacilityLocation'
         data['content_0$tbDatePicker'] = target_date
         soup = BeautifulSoup(r.content, 'html.parser')
-        for i, cc in enumerate(cc_list):
-            # print(f'{i/len(cc_list)*100:.1f}% done...')
+        for i, cc in enumerate(CC_LIST):
+            # print(f'{i/len(CC_LIST)*100:.1f}% done...')
             cc_hash = CC_HASH_MAPPING[cc]
             state = { tag['name']: tag['value'] for tag in soup.select('input[name^=__]')}
             data.update(state)
@@ -157,6 +189,14 @@ def check_date_availability(target_date):
     return cc_availability
 
 def check_cc_availability(cc):
+    """Checks all dates (next 2 weeks) for availabilities for specific CC
+    
+    Arguments:
+        cc {str} -- CC for which to check
+    
+    Returns:
+        dict -- {date:{slot:availability}} dictionary for given CC
+    """    
     date_availability = {}
     url = 'https://www.onepa.sg/facilities/4490ccmcpa-bm'
     cc_hash = CC_HASH_MAPPING[cc]

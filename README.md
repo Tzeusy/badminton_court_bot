@@ -1,16 +1,21 @@
 # Introduction
-Because I'm lazy to check for badminton court availability one by one from the godawful OnePA site
+Built because I'm lazy to check for badminton court availability one by one from the OnePA website. Built in a day, and subject to consistency of OnePA's website structure (works via webscraping).
 
 ## Dependencies
+Install python dependencies as follows:
 ```
 python-telegram-bot
 requests
 beautifulsoup
 ```
 
-### Usage
-If you're running the bot:
-Run ```python3 tele_interface.py```
+### Setup
+Create a `credentials.json` file in the base directory, containing your telegram key under the `telegram_key` key. For example,
+```
+{
+    "telegram_key": "123456:abcdef"
+}
+```
 
-If you're interfacing with the Telegram bot via tele:
-Talk to MintonCCBot
+### Usage
+Run ```python3 tele_interface.py```
